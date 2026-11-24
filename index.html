@@ -7,7 +7,64 @@
   <title>Расписание ТПУ</title>
   <link rel="icon" type="image/x-icon" sizes="16x16" href="./favicon.ico">
   <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
-  <script src="./schedule.js?v=2" defer></script>
+  <script>
+    (() => {
+      const portalUrl = 'https://ro-rasp.tpu.ru/';
+      const academicYear = 2026;
+      const firstSunday = Date.UTC(2026, 7, 30);
+      const lastWeek = 51;
+      const weekInMilliseconds = 7 * 24 * 60 * 60 * 1000;
+      const tomskDate = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Tomsk',
+        calendar: 'gregory',
+        numberingSystem: 'latn',
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+      });
+
+      function currentWeek() {
+        const parts = Object.fromEntries(
+          tomskDate.formatToParts(new Date()).map(({ type, value }) => [type, value]),
+        );
+        // Treat Tomsk calendar dates as UTC dates for arithmetic without local clock offsets.
+        const calendarDay = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day));
+        const week = 1 + Math.floor((calendarDay - firstSunday) / weekInMilliseconds);
+        return week >= 1 && week <= lastWeek ? week : null;
+      }
+
+      function scheduleUrl(week) {
+        return week === null ? portalUrl : `${portalUrl}gruppa_44645/${academicYear}/${week}/view.html`;
+      }
+
+      const pageUrl = new URL(location.href);
+      if (!pageUrl.searchParams.has('setup')) {
+        location.replace(scheduleUrl(currentWeek()));
+        return;
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        const scheduleLink = document.getElementById('schedule');
+        const weekLabel = document.getElementById('week');
+
+        function updateSchedule() {
+          const week = currentWeek();
+          scheduleLink.href = scheduleUrl(week);
+          scheduleLink.textContent = week === null ? 'Открыть портал ТПУ' : 'Открыть расписание';
+          weekLabel.textContent = week === null
+            ? 'Найдите группу 8К53Т на портале ТПУ.'
+            : `Группа 8К53Т · Неделя ${week}`;
+        }
+
+        updateSchedule();
+        scheduleLink.addEventListener('click', updateSchedule);
+        // A bookmark created here opens the regular URL with automatic navigation.
+        pageUrl.searchParams.delete('setup');
+        history.replaceState(null, '', pageUrl);
+        document.getElementById('bookmark-help').hidden = false;
+      });
+    })();
+  </script>
   <style>
     :root {
       color-scheme: light dark;
