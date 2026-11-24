@@ -4,6 +4,7 @@ import {
 import type { ReactNode } from 'react';
 import { academicWeek, addDays, dateLabel, startOfWeek, updateLabel, weekRange } from './calendar.ts';
 import { findPerson, gaps, lessonPlace, lessonStatus, type Lesson, type Person, type Snapshot } from './data.ts';
+import { PersonAvatar } from './PersonAvatar.tsx';
 
 type Clock = { date: string; time: string };
 
@@ -95,11 +96,12 @@ export function LessonList({ lessons, clock, nextId, teacherMode = false, direct
             <h3>{lesson.title}</h3>
             <div className="lesson-details">
               {!teacherMode && lesson.teachers?.length ? <span>
-                <Users size={15} aria-hidden />
                 {lesson.teachers.map((name, index) => {
                   const match = findPerson(directory, 'teacher', name);
                   return <span key={`${name}-${index}`}>{index > 0 && ', '}
-                    {match ? <button className="text-button" onClick={() => onTeacher(match)}>{name}</button> : name}
+                    {match ? <button className="text-button teacher-link" onClick={() => onTeacher(match)}>
+                      <PersonAvatar person={match} size="small" /> {name}
+                    </button> : name}
                   </span>;
                 })}
               </span> : null}

@@ -9,10 +9,12 @@ import {
   matchesSearch, searchKey, type Lesson, type Person, type Snapshot,
 } from './data.ts';
 import { ImportDialog } from './ImportDialog.tsx';
+import { PersonAvatar } from './PersonAvatar.tsx';
 import { fetchPublished } from './published.ts';
 import { isStandalone, promptInstall, registerServiceWorker } from './pwa.ts';
 import { EmptyState, LessonList, OriginalLink, SnapshotNote, WeekPicker } from './Schedule.tsx';
 import { loadPreferences, loadSnapshots, mergeSnapshots, savePreferences, saveSnapshots, snapshotFor, type Theme } from './storage.ts';
+import { teacherPortrait, TPU_STAFF_DIRECTORY } from './teacher-portraits.ts';
 
 type Page = 'home' | 'schedule' | 'people' | 'settings';
 type Route = { page: Page; teacherId?: string };
@@ -104,6 +106,7 @@ export function App() {
   }, [snapshots, prefs.favorites, group]);
 
   const teacher = directory.find((person) => person.id === route.teacherId && person.kind === 'teacher');
+  const teacherProfile = teacher && teacherPortrait(teacher)?.profile;
   const person = teacher ?? group;
   const currentSnapshot = snapshotFor(snapshots, person, day);
   const hasWeekCoverage = snapshots.some((item) => item.person.id === person.id
@@ -327,10 +330,19 @@ export function App() {
         <div className="page-title">
           <div>
             {teacher && <button className="text-button breadcrumb" onClick={() => navigate('people')}>Все преподаватели</button>}
-            <h1>{heading}</h1>
-            {route.page === 'home' && <p>{dayHeading(clock.date)} <span className="header-separator">/</span> Томск</p>}
-            {route.page === 'people' && !teacher && <p>Найдите расписание или добавьте преподавателя в избранное.</p>}
-            {teacher && <p>Расписание преподавателя</p>}
+            <div className={teacher ? 'teacher-heading' : undefined}>
+              {teacher && <PersonAvatar person={teacher} size="large" />}
+              <div>
+                <h1>{heading}</h1>
+                {route.page === 'home' && <p>{dayHeading(clock.date)} <span className="header-separator">/</span> Томск</p>}
+                {route.page === 'people' && !teacher && <p>Найдите расписание или добавьте преподавателя в избранное.</p>}
+                {teacher && <p className="teacher-subtitle">Расписание преподавателя
+                  {teacherProfile && <a className="text-link" href={teacherProfile} target="_blank" rel="noreferrer">
+                    Профиль ТПУ <ArrowUpRight size={14} aria-hidden />
+                  </a>}
+                </p>}
+              </div>
+            </div>
           </div>
           {route.page === 'home' && <button className="button secondary page-action" onClick={showToday}><CalendarDays size={18} aria-hidden /> Сегодня</button>}
           {route.page === 'schedule' && <OriginalLink href={currentHref} className="button secondary page-action" />}
@@ -382,7 +394,10 @@ export function App() {
             <section className="favorites surface">
               <div className="panel-heading"><div><h2>Избранное</h2><p>Преподаватели</p></div><Star size={22} aria-hidden /></div>
               {favorites.length ? <ul className="person-list">{favorites.map((item) => <li key={item.id}>
-                <button className="person-open" onClick={() => showTeacher(item)}><strong>{item.name}</strong><ChevronRight size={17} aria-hidden /></button>
+                <button className="person-open" onClick={() => showTeacher(item)}>
+                  <PersonAvatar person={item} />
+                  <strong className="person-name">{item.name}</strong><ChevronRight size={17} aria-hidden />
+                </button>
               </li>)}</ul> : <p className="side-empty">Добавьте преподавателей, чтобы открывать их расписание с главной.</p>}
               <button className="text-button" onClick={() => { setFilter('teacher'); setQuery(''); navigate('people'); }}>
                 <Search size={16} aria-hidden /> Найти преподавателя
@@ -434,12 +449,12 @@ export function App() {
           {favorites.length > 0 && !query && filter !== 'group' && <div className="directory-favorites">
             <h2>Избранные преподаватели</h2>
             <div className="action-row">{favorites.map((item) => <button key={item.id} className="button secondary" onClick={() => showTeacher(item)}>
-              <Star size={16} aria-hidden /> {item.name}</button>)}</div>
+              <PersonAvatar person={item} size="small" /> {item.name}</button>)}</div>
           </div>}
           <ul className="directory-list">
             {filtered.map((entry) => <li key={entry.id}>
               <button className="person-open" onClick={() => entry.kind === 'teacher' ? showTeacher(entry) : selectGroup(entry)}>
-                <span className="avatar" aria-hidden>{entry.kind === 'group' ? <Users size={19} /> : entry.name[0]}</span>
+                <PersonAvatar person={entry} />
                 <span className="person-name"><strong>{entry.name}</strong><small>{entry.kind === 'group' ? (entry.id === group.id ? 'Моя группа' : 'Учебная группа') : 'Преподаватель'}</small></span>
                 <ChevronRight size={18} aria-hidden />
               </button>
@@ -477,7 +492,12 @@ export function App() {
           <span>Свежая выгрузка недоступна. Можно открыть сохранённые данные или перейти на ТПУ.</span>
           <button className="text-button" onClick={reloadPublished}>Повторить</button>
         </div>}
-        <footer><a href={PORTAL} target="_blank" rel="noreferrer">Источник: ИПК Расписание ТПУ <ArrowUpRight size={14} aria-hidden /></a></footer>
+        <footer>
+          <a href={PORTAL} target="_blank" rel="noreferrer">Источник: ИПК Расписание ТПУ <ArrowUpRight size={14} aria-hidden /></a>
+          {route.page !== 'settings' && <a href={TPU_STAFF_DIRECTORY} target="_blank" rel="noreferrer">
+            Фото из справочника ТПУ <ArrowUpRight size={14} aria-hidden />
+          </a>}
+        </footer>
       </main>
     </div>
     {importOpen && <ImportDialog person={person} directory={directory} date={day} onSave={saveImport} onClose={() => setImportOpen(false)} />}
