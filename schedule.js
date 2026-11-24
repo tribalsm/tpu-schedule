@@ -36,16 +36,14 @@ function updateSchedule() {
   return scheduleLink.href;
 }
 
-updateSchedule();
-scheduleLink.addEventListener('click', updateSchedule);
-
+const scheduleUrl = updateSchedule();
 const pageUrl = new URL(location.href);
 if (pageUrl.searchParams.has('setup')) {
+  scheduleLink.addEventListener('click', updateSchedule);
   pageUrl.searchParams.delete('setup');
   // A bookmark created here opens the regular URL with automatic navigation.
   history.replaceState(null, '', pageUrl);
   document.getElementById('bookmark-help').hidden = false;
 } else {
-  document.getElementById('bookmark-option').hidden = false;
-  setTimeout(() => location.replace(updateSchedule()), 1500);
+  location.replace(scheduleUrl);
 }
