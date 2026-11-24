@@ -39,7 +39,9 @@
 
       const pageUrl = new URL(location.href);
       if (!pageUrl.searchParams.has('setup')) {
-        location.replace(scheduleUrl(currentWeek()));
+        const destination = scheduleUrl(currentWeek());
+        document.documentElement.hidden = true;
+        location.replace(destination);
         return;
       }
 
